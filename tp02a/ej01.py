@@ -31,6 +31,8 @@ if cvui_dir not in sys.path:
     sys.path.append(cvui_dir)
 import cvui
 
+import bisect
+
 IMAGE_DIR = "../imgs/"
 IMAGE_FILE = "clown.jpg"
 img_original = cv2.imread(f"{IMAGE_DIR}{IMAGE_FILE}", cv2.IMREAD_GRAYSCALE)
@@ -47,17 +49,15 @@ text_height = 20
 img_win_1 = np.zeros((HEIGHT+2*margin+text_height,
                       3*WIDTH+4*margin, # |img|img|img| 
                       3), np.uint8)
-print(img_win_1.shape, img_original.shape)
 
 # Crear ventana 2. La idea es que se muestre la LUT. Las dimensiones de la 
 # ventana deben permitir determinar la LUT a partir de la interaccion del 
 # usuario. Ademas, se muestra el titulo de la ventana en la parte superior,
 # se definen los margenes y se agrega un boton para resetear LUT
-px_per_unit = 2
+px_per_unit = 1
 button_height = 20
-img_win_2 = np.zeros((3*margin+px_per_unit*255+text_height+button_height, 
-                      2*margin+px_per_unit*255, 3), np.uint8)
-lut = 255*np.ones((px_per_unit*255, px_per_unit*255, 3), np.uint8)
+img_win_2 = np.zeros((2*margin+px_per_unit*256+text_height+button_height, 
+                      px_per_unit*256, 3), np.uint8)
 
 # Crear ventanas con OpenCV
 WINDOW_NAME_1 = "Imagen original, mapeo y negativo"
@@ -69,11 +69,19 @@ cvui.init(WINDOW_NAME_1)
 # Indicarle a cvui que debe seguir el mouse en la segunda ventana
 cvui.watch(WINDOW_NAME_2)
 
+# Aplicar transformaciones
 img_neg = ut.applyNegative(img_original)
-a = [1]
-c = [0]
-Rlims = [(0, 255)]
+points = []
+a, c, Rlims = ut.hacerTramos(points)
 img_lut = ut.applyLUT(img_original, a, c, Rlims)
+
+# Variables para dibujar LUT
+lut = 255*np.ones((px_per_unit*256, px_per_unit*256, 3), np.uint8)
+#print("LUT:", lut.shape)
+lut_x_min, lut_y_min = 0, 0
+lut_width, lut_height = 256, 256
+R_points = np.arange(Rlims[0][0], Rlims[0][1]+px_per_unit, px_per_unit)
+lut_points = ut.computeLUT(R_points, a[0], c[0])
 
 while (True):
     cvui.context(WINDOW_NAME_1)
@@ -94,18 +102,37 @@ while (True):
 
     cvui.context(WINDOW_NAME_2)
     img_win_2[:] = (49, 52, 49) # Refrescar ventana 2
-    cvui.text(img_win_2, margin, margin, "LUT", 0.5, 0xFFFFFF)
     # Boton para resetear
-    if cvui.button(img_win_2, margin, 2*margin+px_per_unit*255+text_height, 
-                   "Reset LUT"):
-        a = [1]
-        c = [0]
-        Rlims = [(0, 255)]
+    if cvui.button(img_win_2, 0, margin+lut.shape[0], "Reset LUT"):
+        points = []
+        a, c, Rlims = ut.hacerTramos(points)
+        R_points = np.arange(Rlims[0][0], Rlims[0][1]+px_per_unit, px_per_unit)
+        lut_points = ut.computeLUT(R_points, a[0], c[0])
         img_lut = ut.applyLUT(img_original, a, c, Rlims)
-    cvui.image(img_win_2, margin, margin+text_height, lut)
+    # TODO: Actualizar LUT
+    if cvui.mouse(cvui.LEFT_BUTTON, cvui.CLICK):
+        x, y = cvui.mouse().x, cvui.mouse().y
+        if (y<256):
+            #print("Click:", x, y, "- Inserting point:", x, 255-y)
+            #print("Points before: ", points)
+            if len(points) == 0:
+                points = [(x, 255-y)]
+            else:
+                bisect.insort(points, (x, 255-y))
+            #print("Points after: ", points)
+            a, c, Rlims = ut.hacerTramos(points)
+            i0 = 0
+            for i in range(0, len(Rlims)):
+                R_points = np.arange(Rlims[i][0], Rlims[i][1], px_per_unit)
+                lut_points[i0:i0+len(R_points)] = ut.computeLUT(R_points, 
+                                                                a[i], c[i])
+                i0 += len(R_points)
+            img_lut = ut.applyLUT(img_original, a, c, Rlims)
 
     # TODO: Actualizar LUT
-
+    cvui.image(img_win_2, 0, 0, lut)
+    cvui.sparkline(img_win_2, lut_points, 0, 0,
+                   lut_width*px_per_unit, lut_height*px_per_unit, 0xFF0000)
     cvui.update()
     cv2.imshow(WINDOW_NAME_2, img_win_2)
 
