@@ -23,13 +23,11 @@ siguientes ejercicios:
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import operations as ut
-
 import sys
-cvui_dir = "../cvui"
-if cvui_dir not in sys.path:
-    sys.path.append(cvui_dir)
-import cvui
+
+sys.path.append("../")
+from utils import operations as ut
+from cvui import cvui
 
 import bisect
 
@@ -109,17 +107,15 @@ while (True):
         R_points = np.arange(Rlims[0][0], Rlims[0][1]+px_per_unit, px_per_unit)
         lut_points = ut.computeLUT(R_points, a[0], c[0])
         img_lut = ut.applyLUT(img_original, a, c, Rlims)
-    # TODO: Actualizar LUT
+
+    # Seleccionar puntos de la LUT para modificarla
     if cvui.mouse(cvui.LEFT_BUTTON, cvui.CLICK):
         x, y = cvui.mouse().x, cvui.mouse().y
         if (y<256):
-            #print("Click:", x, y, "- Inserting point:", x, 255-y)
-            #print("Points before: ", points)
             if len(points) == 0:
                 points = [(x, 255-y)]
             else:
                 bisect.insort(points, (x, 255-y))
-            #print("Points after: ", points)
             a, c, Rlims = ut.hacerTramos(points)
             i0 = 0
             for i in range(0, len(Rlims)):
@@ -128,8 +124,7 @@ while (True):
                                                                 a[i], c[i])
                 i0 += len(R_points)
             img_lut = ut.applyLUT(img_original, a, c, Rlims)
-
-    # TODO: Actualizar LUT
+    # Dibujar LUT
     cvui.image(img_win_2, 0, 0, lut)
     cvui.sparkline(img_win_2, lut_points, 0, 0,
                    lut_width*px_per_unit, lut_height*px_per_unit, 0xFF0000)
