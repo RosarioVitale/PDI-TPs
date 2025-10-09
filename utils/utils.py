@@ -15,7 +15,9 @@ def get_column(img, col):
     Returns:
         column: Perfil de intensidad de la columna
     """
-    return img[:, col]
+    if img.ndim==2:
+        return img[:, col]
+    return img[:, col, :]
 
 
 def get_row(img, row):
@@ -29,7 +31,9 @@ def get_row(img, row):
     Returns:
         row: Perfil de intensidad de la fila
     """
-    return img[row, :]
+    if img.ndim==2:
+        return img[row, :]
+    return img[row, :, :]
 
 
 def get_segment(img, x1, y1, x2, y2):
@@ -46,15 +50,26 @@ def get_segment(img, x1, y1, x2, y2):
     Returns:
         segment: Segmento de la imagen
     """
-    if x1==x2 and y1==y2:
-        return img[x1, y1]
-    if x1==x2:
-        return img[y1:y2, x1]
-    if y1==y2:
-        return img[y1, x1:x2]
-    Y = [int(x*(y2-y1)//(x2-x1)+y1) for x in range(x2-x1)]
-    X = [i for i in range(x1,x2)] 
-    return img[Y,X]
+    if img.ndim==2:
+        if x1==x2 and y1==y2:
+            return img[x1, y1]
+        if x1==x2:
+            return img[y1:y2, x1]
+        if y1==y2:
+            return img[y1, x1:x2]
+        Y = [int(x*(y2-y1)//(x2-x1)+y1) for x in range(x2-x1)]
+        X = [i for i in range(x1,x2)] 
+        return img[Y,X]
+    else:
+        if x1==x2 and y1==y2:
+            return img[x1, y1, :]
+        if x1==x2:
+            return img[y1:y2, x1, :]
+        if y1==y2:
+            return img[y1, x1:x2, :]
+        Y = [int(x*(y2-y1)//(x2-x1)+y1) for x in range(x2-x1)]
+        X = [i for i in range(x1,x2)] 
+        return img[Y,X, :]
 
 
 #################
@@ -85,6 +100,7 @@ def load_gif(filename):
         return frames[0]
     return frames
 
+
 ###################
 # Error functions #
 ###################
@@ -100,3 +116,4 @@ def error_mse(img1, img2):
         error: Error cuadratico medio
     """
     return np.mean((img1.astype("float")-img2.astype("float"))**2)
+

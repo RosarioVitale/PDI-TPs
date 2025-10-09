@@ -4,6 +4,16 @@ import cv2
 KBOXLOW, KCROSSLOW, KBOXHI1, KBOXHI0, KCROSSHI1, KCROSSHI0 = 0, 1, 2, 3, 4, 5
 
 def generateKernel(method, size=(3,3)):
+    """
+    Genera un kernel de convolucion para la aplicacion de filtros
+
+    Parameters:
+        method: Metodo de generacion del kernel
+        size: Tamano del kernel (por defecto (3,3))
+
+    Returns:
+        mask: Kernel generado
+    """
 
     # Limitamos el tamano a numeros impares
     assert size[0]%2==1 and size[1]%2==1, "El kernel debe tener tamano impar"
@@ -32,5 +42,6 @@ def generateKernel(method, size=(3,3)):
         mask[size[0]//2, size[1]//2] = size[0]+size[1]-1 
     else: 
         print("Seleccione un metodo valido") 
+        return
 
     return mask
